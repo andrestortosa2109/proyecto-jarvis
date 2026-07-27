@@ -6,7 +6,7 @@
 // de 50 Hz con pulsos de 0.5-2.5 ms. Así entiendes QUÉ es un servo.
 
 const int PIN_SERVO = 18;
-const int CANAL_PWM = 0;       // el ESP32 tiene 16 canales PWM
+const int PIN_POTE = 34;
 const int FRECUENCIA = 50;     // 50 Hz = un pulso cada 20 ms (estándar servo)
 const int RESOLUCION = 16;     // 16 bits → valores de 0 a 65535
 
@@ -20,24 +20,20 @@ int anguloADuty(int angulo) {
 
 void setup() {
   Serial.begin(115200);
-  ledcSetup(CANAL_PWM, FRECUENCIA, RESOLUCION);
-  ledcAttachPin(PIN_SERVO, CANAL_PWM);
-  Serial.println("Servo listo. Barriendo 0-180 grados...");
+  // API nueva del core ESP32 v3.x: ledcAttach asocia el PWM al PIN
+  // (ya no a un número de canal manual como en versiones antiguas).
+  ledcAttach(PIN_SERVO, FRECUENCIA, RESOLUCION);
+  Serial.println("Servo listo. Reto del potenciometro: RETO SEMANA 0 completado.");
 }
 
+// RETO SEMANA 0 (entregable de la semana 1): control en lazo directo.
+// El potenciómetro en GPIO 34 manda directamente el ángulo del servo.
 void loop() {
-  // Barrido suave de ida...
-  for (int ang = 0; ang <= 180; ang += 2) {
-    ledcWrite(CANAL_PWM, anguloADuty(ang));
-    delay(20);
-  }
-  // ...y de vuelta
-  for (int ang = 180; ang >= 0; ang -= 2) {
-    ledcWrite(CANAL_PWM, anguloADuty(ang));
-    delay(20);
-  }
+  int lectura = analogRead(PIN_POTE);
+  int ang = map(lectura, 0, 4095, 0, 180);
+  // IMPORTANTE: en la API nueva, ledcWrite también recibe el PIN (no el
+  // canal) como primer argumento — de ahí venía el bug de que el servo
+  // no se movía aunque `ang` calculara bien.
+  ledcWrite(PIN_SERVO, anguloADuty(ang));
+  delay(20);
 }
-
-// RETO SEMANA 0: añade un potenciómetro en Wokwi (GPIO 34) y sustituye
-// el barrido por:  int ang = map(analogRead(34), 0, 4095, 0, 180);
-// Cuando lo tengas, ya has completado el entregable de la semana 1.
